@@ -5,7 +5,7 @@ public class KafkaEvent {
     private final static String splitString = "##";
     private String word;
     private int frequency;
-    private Long timestamp;
+    private long timestamp;
 
     public String getWord() {
         return word;
@@ -15,7 +15,7 @@ public class KafkaEvent {
         return frequency;
     }
 
-    public Long getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
@@ -27,13 +27,13 @@ public class KafkaEvent {
         this.frequency = frequency;
     }
 
-    public void setTimestamp(Long timestamp) {
+    public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
 
     public KafkaEvent(){}
 
-    public KafkaEvent(String word, int frequency, Long timestamp){
+    public KafkaEvent(String word, int frequency, long timestamp){
         this.word = word;
         this.frequency = frequency;
         this.timestamp = timestamp;

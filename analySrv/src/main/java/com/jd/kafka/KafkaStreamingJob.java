@@ -2,7 +2,9 @@ package com.jd.kafka;
 
 
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
@@ -13,6 +15,7 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.util.Collector;
+import scala.Int;
 
 import javax.annotation.Nullable;
 
@@ -59,22 +62,48 @@ public class KafkaStreamingJob {
             new FlinkKafkaConsumer010<KafkaEvent>(
                     parameterTool.get("input-topic"),
                     new KafkaEventSchema(),
-                    parameterTool.getProperties()).assignTimestampsAndWatermarks()
-        );
+                    parameterTool.getProperties())
+                    .assignTimestampsAndWatermarks(new CustomWatermarkExtractor()))
+                .keyBy("word")
+                .map(new RollingAdditionMapper());
+
+
 
     }
 
+    private static class RollingAdditionMapper extends RichMapFunction<KafkaEvent, KafkaEvent>{
+
+        private transient ValueState<Integer> currentTotalValue;
+
+
+        @Override
+        public KafkaEvent map(KafkaEvent kafkaEvent) throws Exception {
+            Integer total = currentTotalValue.value();
+            if (total == null){
+                total = 0;
+            }
+            total += kafkaEvent.getFrequency();
+
+            currentTotalValue.update(total);
+            return new KafkaEvent(kafkaEvent.getWord(), total, kafkaEvent.getTimestamp());
+        }
+    }
+
+
     private static class CustomWatermarkExtractor implements AssignerWithPeriodicWatermarks<KafkaEvent>{
+
+        private long currentTimeStamp = Long.MIN_VALUE;
 
         @Nullable
         @Override
         public Watermark getCurrentWatermark() {
-            return new Watermark();
+            return new Watermark(currentTimeStamp == Long.MIN_VALUE ? Long.MIN_VALUE : currentTimeStamp-1);
         }
 
         @Override
         public long extractTimestamp(KafkaEvent kafkaEvent, long l) {
-            return 0;
+            this.currentTimeStamp = kafkaEvent.getTimestamp();
+            return kafkaEvent.getTimestamp();
         }
     }
 }
