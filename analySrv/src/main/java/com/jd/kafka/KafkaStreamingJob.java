@@ -14,6 +14,7 @@ import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 import org.apache.flink.util.Collector;
 import scala.Int;
 
@@ -32,7 +33,7 @@ import javax.annotation.Nullable;
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
 public class KafkaStreamingJob {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         args = new String[]{
@@ -67,12 +68,19 @@ public class KafkaStreamingJob {
                 .keyBy("word")
                 .map(new RollingAdditionMapper());
 
+        input.addSink(
+                new FlinkKafkaProducer010<KafkaEvent>(
+                        parameterTool.get("output-topic"),
+                        new KafkaEventSchema(),
+                        parameterTool.getProperties()));
 
+        env.execute("kafka 0.10 job");
 
     }
 
     private static class RollingAdditionMapper extends RichMapFunction<KafkaEvent, KafkaEvent>{
 
+        private static final long serialVersionUID = -36374891830755378L;
         private transient ValueState<Integer> currentTotalValue;
 
 
@@ -92,6 +100,7 @@ public class KafkaStreamingJob {
 
     private static class CustomWatermarkExtractor implements AssignerWithPeriodicWatermarks<KafkaEvent>{
 
+        private static final long serialVersionUID = 4564078497295602259L;
         private long currentTimeStamp = Long.MIN_VALUE;
 
         @Nullable
