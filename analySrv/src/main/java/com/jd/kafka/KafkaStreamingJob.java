@@ -39,8 +39,8 @@ public class KafkaStreamingJob {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         args = new String[]{
-                "--input-topic","input",
-                "--output-topic","output",
+                "--input-topic","tuzisir",
+                "--output-topic","tuzisir",
                 "--bootstrap.servers","localhost:9092",
                 "--zookeeper.connect","localhost:2181",
                 "--group.id","consumer"};
@@ -92,6 +92,7 @@ public class KafkaStreamingJob {
             if (total == null){
                 total = 0;
             }
+            System.out.println(kafkaEvent.getWord() + "+++" + kafkaEvent.getTimestamp() + "+++" +kafkaEvent.getFrequency());
             total += kafkaEvent.getFrequency();
 
             currentTotalValue.update(total);
