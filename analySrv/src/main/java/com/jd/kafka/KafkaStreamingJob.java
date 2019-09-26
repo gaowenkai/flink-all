@@ -5,8 +5,10 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -60,7 +62,7 @@ public class KafkaStreamingJob {
 
 
         DataStream<KafkaEvent> input = env.addSource(
-            new FlinkKafkaConsumer010<KafkaEvent>(
+            new FlinkKafkaConsumer010<>(
                     parameterTool.get("input-topic"),
                     new KafkaEventSchema(),
                     parameterTool.getProperties())
@@ -69,7 +71,7 @@ public class KafkaStreamingJob {
                 .map(new RollingAdditionMapper());
 
         input.addSink(
-                new FlinkKafkaProducer010<KafkaEvent>(
+                new FlinkKafkaProducer010<>(
                         parameterTool.get("output-topic"),
                         new KafkaEventSchema(),
                         parameterTool.getProperties()));
@@ -94,6 +96,12 @@ public class KafkaStreamingJob {
 
             currentTotalValue.update(total);
             return new KafkaEvent(kafkaEvent.getWord(), total, kafkaEvent.getTimestamp());
+        }
+
+        @Override
+        public void open(Configuration parameters) throws Exception{
+            currentTotalValue = getRuntimeContext().getState(new ValueStateDescriptor<Integer>("currentTotalValue",Integer.class));
+
         }
     }
 
