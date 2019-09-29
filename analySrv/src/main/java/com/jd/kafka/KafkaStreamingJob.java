@@ -79,7 +79,6 @@ public class KafkaStreamingJob {
         private static final long serialVersionUID = -36374891830755378L;
         private transient ValueState<Integer> currentTotalValue;
 
-
         @Override
         public KafkaEvent map(KafkaEvent kafkaEvent) throws Exception {
             Integer total = currentTotalValue.value();

@@ -38,7 +38,6 @@ import org.apache.flink.util.Collector;
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
 public class StreamingJob {
-	private static int index = 1;
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

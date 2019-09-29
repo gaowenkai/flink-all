@@ -1,12 +1,8 @@
 package com.jd.kafka;
 
 
-import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
-import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple4;
-import org.apache.flink.api.java.tuple.Tuple6;
+import org.apache.flink.api.java.tuple.*;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -20,20 +16,17 @@ import org.apache.flink.util.Collector;
 
 import javax.annotation.Nullable;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.*;
 
 public class WatermarksTest {
-
-
 
     public static void main(String[] args) throws Exception {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//        env.enableCheckpointing(5000);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         DataStream<String> input = env.socketTextStream("localhost",8888);
-        DataStream<Tuple4<String, Long, String, String>> res = input
+        DataStream<Tuple6<String, Long, String, String, String, String>> res = input
                 .map(s -> new Tuple2<String,Long>(
                         s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
@@ -60,7 +53,6 @@ public class WatermarksTest {
             return watermark;
         }
 
-
         @Override
         public long extractTimestamp(Tuple2<String, Long> t, long l) {
             this.currentMaxTimeStamp = Math.max(t.f1, currentMaxTimeStamp);
@@ -69,16 +61,25 @@ public class WatermarksTest {
         }
     }
 
-    private static class WindowFunctionTest implements WindowFunction<Tuple2<String, Long>, Tuple4<String, Long, String, String>, Tuple, TimeWindow>{
-        private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static class WindowFunctionTest implements WindowFunction<Tuple2<String, Long>, Tuple6<String, Long, String, String, String, String>, Tuple, TimeWindow>{
 
         @Override
-        public void apply(Tuple key, TimeWindow timeWindow, Iterable<Tuple2<String, Long>> iterable, Collector<Tuple4<String, Long, String, String>> collector) throws Exception {
-            collector.collect(new Tuple4<String, Long, String, String>(
-                    key.getField(0),
+        public void apply(Tuple key, TimeWindow timeWindow, Iterable<Tuple2<String, Long>> iterable, Collector<Tuple6<String, Long, String, String, String, String>> collector) throws Exception {
+            List<Long> l = new ArrayList<Long>();
+            Iterator<Tuple2<String, Long>> it = iterable.iterator();
+            while (it.hasNext()){
+                l.add(it.next().f1);
+            }
+
+            Collections.sort(l);
+
+            collector.collect(new Tuple6<String, Long, String, String, String, String>(
+                    key.toString(),
                     iterable.spliterator().getExactSizeIfKnown(),
-                    format.format(new Date(timeWindow.getStart())),
-                    format.format(new Date(timeWindow.getEnd()))
+                    stampToDate(l.get(0)),
+                    stampToDate(l.get(l.size()-1)),
+                    stampToDate(timeWindow.getStart()),
+                    stampToDate(timeWindow.getEnd())
                     )
             );
 
