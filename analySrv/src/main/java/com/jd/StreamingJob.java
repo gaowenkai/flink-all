@@ -44,7 +44,7 @@ public class StreamingJob {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		// get input data
 		DataStream<Tuple2<String, Integer>> res_keyBy =
-				env.socketTextStream("localhost",9999)
+				env.socketTextStream("localhost",8888)
 				//map是将每一行单词变为一个tuple2
 				.flatMap(new Splitter())
 				//keyBy进行分区，按照第一列，也就是按照单词进行分区
