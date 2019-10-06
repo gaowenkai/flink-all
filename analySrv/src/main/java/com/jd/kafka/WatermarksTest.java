@@ -33,6 +33,8 @@ public class WatermarksTest {
                 .assignTimestampsAndWatermarks(new TestWatermarks())
                 .keyBy(0)
                 .window(TumblingEventTimeWindows.of(Time.seconds(3)))
+                // 允许数据迟到3S(因为输入的数据所在的窗口已经执行过了，flink 默认对这些迟到的数据的处理方案就是丢弃)
+                .allowedLateness(Time.seconds(3))
                 .apply(new WindowFunctionTest())
                 ;
 
