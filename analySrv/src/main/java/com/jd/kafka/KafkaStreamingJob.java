@@ -103,7 +103,7 @@ public class KafkaStreamingJob {
     private static class CustomWatermarkExtractor implements AssignerWithPeriodicWatermarks<KafkaEvent>{
 
         private static final long serialVersionUID = 4564078497295602259L;
-        private long currentTimeStamp = Long.MIN_VALUE;
+        private static long currentTimeStamp = Long.MIN_VALUE;
 
         @Nullable
         @Override
