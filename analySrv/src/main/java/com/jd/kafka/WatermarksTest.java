@@ -5,14 +5,18 @@ import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.*;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.streaming.api.datastream.WindowedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
+import org.apache.flink.util.OutputTag;
 
 import javax.annotation.Nullable;
 import java.text.SimpleDateFormat;
@@ -25,8 +29,11 @@ public class WatermarksTest {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
+        OutputTag<Tuple2<String,Long>> outputTag = new OutputTag<Tuple2<String,Long>>("Too-Late-Data") {};
+
         DataStream<String> input = env.socketTextStream("localhost",8888);
-        DataStream<Tuple6<String, Long, String, String, String, String>> res = input
+
+        SingleOutputStreamOperator<Tuple6<String, Long, String, String, String, String>> res = input
                 .map(s -> new Tuple2<String,Long>(
                         s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
@@ -35,10 +42,15 @@ public class WatermarksTest {
                 .window(TumblingEventTimeWindows.of(Time.seconds(3)))
                 // 允许数据迟到3S(因为输入的数据所在的窗口已经执行过了，flink 默认对这些迟到的数据的处理方案就是丢弃)
                 .allowedLateness(Time.seconds(3))
+                // 丢弃的数据使用side output输出
+                .sideOutputLateData(outputTag)
                 .apply(new WindowFunctionTest())
                 ;
 
+        DataStream<Tuple2<String, Long>> lateData = res.getSideOutput(outputTag);
+
         res.print();
+        lateData.print();
         env.execute();
 
     }
