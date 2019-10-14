@@ -1,20 +1,26 @@
 package com.jd.kafka;
 
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
-import org.apache.flink.api.java.tuple.*;
+import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple6;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.datastream.WindowedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
-import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.java.StreamTableEnvironment;
+import org.apache.flink.table.sinks.CsvTableSink;
+import org.apache.flink.table.sinks.TableSink;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 
@@ -48,9 +54,27 @@ public class WatermarksTest {
                 ;
 
         DataStream<Tuple2<String, Long>> lateData = res.getSideOutput(outputTag);
+        DataStream<String> lateDataString = lateData
+                .map(t -> "id: "+t.f0+" timestamp: "+t.f1)
+                .returns(Types.STRING);
 
         res.print();
-        lateData.print();
+        lateDataString.print();
+
+        StreamTableEnvironment tenv = TableEnvironment.getTableEnvironment(env);
+        tenv.registerDataStream("late",lateData,"t_id,t_time");
+        String sql = "select t_id,t_time from late";
+        Table table = tenv.sqlQuery(sql);
+
+        //write to csv sink
+
+        TableSink csvSink = new CsvTableSink("E:/work/flink-all/flink_data/late-data_"+System.currentTimeMillis(), "|");
+        String[] fieldNames = {"t_id","t_time"};
+        TypeInformation[] fieldTypes = {Types.STRING,Types.LONG};
+        tenv.registerTableSink("CsvSinkTable", fieldNames, fieldTypes, csvSink);
+        table.insertInto("CsvSinkTable");
+
+
         env.execute();
 
     }
