@@ -1,11 +1,16 @@
 package com.jd.kafka;
 
 
+import org.apache.flink.api.common.JobExecutionResult;
+import org.apache.flink.api.common.accumulators.IntCounter;
+import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple6;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -40,6 +45,7 @@ public class WatermarksTest {
         DataStream<String> input = env.socketTextStream("localhost",8888);
 
         SingleOutputStreamOperator<Tuple6<String, Long, String, String, String, String>> res = input
+                .filter(new TestFilter())
                 .map(s -> new Tuple2<String,Long>(
                         s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
@@ -53,12 +59,27 @@ public class WatermarksTest {
                 .apply(new WindowFunctionTest())
                 ;
 
+        res.print();
+
         DataStream<Tuple2<String, Long>> lateData = res.getSideOutput(outputTag);
         DataStream<String> lateDataString = lateData
-                .map(t -> "id: "+t.f0+" timestamp: "+t.f1)
-                .returns(Types.STRING);
+                .map(new RichMapFunction<Tuple2<String, Long>,String>() {
 
-        res.print();
+                    IntCounter counter = new IntCounter();
+                    @Override
+                    public String map(Tuple2<String, Long> t) throws Exception {
+                        counter.add(1);
+                        return "id: "+t.f0+"|timestamp: "+t.f1;
+                    }
+
+                    @Override
+                    public void open(Configuration parameters) throws Exception {
+                        getRuntimeContext().addAccumulator("counts", counter);
+                    }
+
+                });
+//              .map(t -> "id: "+t.f0+" timestamp: "+t.f1).returns(Types.STRING);
+
         lateDataString.print();
 
         StreamTableEnvironment tenv = TableEnvironment.getTableEnvironment(env);
@@ -75,7 +96,9 @@ public class WatermarksTest {
         table.insertInto("CsvSinkTable");
 
 
-        env.execute();
+        JobExecutionResult result =  env.execute("job");
+        Object num = result.getAccumulatorResult("counts");
+        System.out.println(num);
 
     }
 
@@ -120,6 +143,21 @@ public class WatermarksTest {
                     stampToDate(timeWindow.getEnd())
                     )
             );
+
+        }
+    }
+
+    private static class TestFilter implements FilterFunction<String>{
+
+        private static String reg = "^\\d{6},\\d{13}$";
+
+        @Override
+        public boolean filter(String s) throws Exception {
+            if(s.matches(reg)){
+                return true;
+            }else{
+                return false;
+            }
 
         }
     }
