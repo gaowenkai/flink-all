@@ -16,6 +16,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
+import org.apache.flink.streaming.api.functions.co.CoMapFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -42,13 +43,21 @@ public class WatermarksTest {
 
         OutputTag<Tuple2<String,Long>> outputTag = new OutputTag<Tuple2<String,Long>>("Too-Late-Data") {};
 
-        DataStream<String> input = env.socketTextStream("localhost",8888);
+        SingleOutputStreamOperator<Tuple2<String, Long>> input1 = env.socketTextStream("localhost",8888)
+                                    .filter(new TestFilter())
+                                    .map(s -> new Tuple2<String,Long>(
+                                            s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
+                                    .returns(Types.TUPLE(Types.STRING, Types.LONG));
 
-        SingleOutputStreamOperator<Tuple6<String, Long, String, String, String, String>> res = input
-                .filter(new TestFilter())
-                .map(s -> new Tuple2<String,Long>(
-                        s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
-                .returns(Types.TUPLE(Types.STRING, Types.LONG))
+        SingleOutputStreamOperator<Tuple2<String, Long>> input2 = env.socketTextStream("localhost", 9999)
+                                    .filter(new TestFilter())
+                                    .map(s -> new Tuple2<String, Long>(
+                                            s.split("\\W+")[0], Long.valueOf(s.split("\\W+")[1])))
+                                    .returns(Types.TUPLE(Types.STRING, Types.LONG));
+
+        SingleOutputStreamOperator<Tuple6<String, Long, String, String, String, String>> res =
+                input1.connect(input2)
+                .map(new TestCoMapFunction())
                 .assignTimestampsAndWatermarks(new TestWatermarks())
                 .keyBy(0)
                 .window(TumblingEventTimeWindows.of(Time.seconds(3)))
@@ -100,6 +109,20 @@ public class WatermarksTest {
         Object num = result.getAccumulatorResult("counts");
         System.out.println(num);
 
+    }
+
+
+    private static class TestCoMapFunction implements CoMapFunction<Tuple2<String,Long>,Tuple2<String,Long>,Tuple2<String,Long>> {
+
+        @Override
+        public Tuple2<String, Long> map1(Tuple2<String, Long> t) throws Exception {
+            return t;
+        }
+
+        @Override
+        public Tuple2<String, Long> map2(Tuple2<String, Long> t) throws Exception {
+            return t;
+        }
     }
 
     private static class TestWatermarks implements AssignerWithPeriodicWatermarks<Tuple2<String,Long>>{
