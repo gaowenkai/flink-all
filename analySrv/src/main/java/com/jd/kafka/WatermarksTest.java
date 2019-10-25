@@ -1,10 +1,11 @@
 package com.jd.kafka;
 
 
-import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.accumulators.IntCounter;
 import org.apache.flink.api.common.functions.FilterFunction;
-import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.state.ValueState;
+import org.apache.flink.api.common.state.ValueStateDescriptor;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple;
@@ -72,22 +73,34 @@ public class WatermarksTest {
 
         DataStream<Tuple2<String, Long>> lateData = res.getSideOutput(outputTag);
         DataStream<String> lateDataString = lateData
-                .map(new RichMapFunction<Tuple2<String, Long>,String>() {
+                .keyBy(0)
+                .flatMap(new RichFlatMapFunction<Tuple2<String, Long>, String>() {
 
-                    IntCounter counter = new IntCounter();
+                    private transient ValueState<Tuple2<Long, Long>> s;
+
                     @Override
-                    public String map(Tuple2<String, Long> t) throws Exception {
-                        counter.add(1);
-                        return "id: "+t.f0+"|timestamp: "+t.f1;
+                    public void flatMap(Tuple2<String, Long> t, Collector<String> collector) throws Exception {
+                        Tuple2<Long,Long> currentState = s.value();
+                        currentState.f0 += 1; //count
+                        currentState.f1 += t.f1; //sum
+                        s.update(currentState); //update
+                        if (currentState.f0 >= 2L){
+                            String res =  "id: "+t.f0+"|average_timestamp: "+currentState.f1/currentState.f0;
+                            collector.collect(res);
+                            s.clear();
+                        }
                     }
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
-                        getRuntimeContext().addAccumulator("counts", counter);
+                        s = getRuntimeContext().getState(new ValueStateDescriptor<Tuple2<Long, Long>>(
+                                "avg",
+                                TypeInformation.of(new TypeHint<Tuple2<Long, Long>>() {}),
+                                Tuple2.of(0L,0L) //init value
+                        ));
                     }
 
                 });
-//              .map(t -> "id: "+t.f0+" timestamp: "+t.f1).returns(Types.STRING);
 
         lateDataString.print();
 
@@ -105,9 +118,8 @@ public class WatermarksTest {
         table.insertInto("CsvSinkTable");
 
 
-        JobExecutionResult result =  env.execute("job");
-        Object num = result.getAccumulatorResult("counts");
-        System.out.println(num);
+        env.execute("job");
+
 
     }
 
