@@ -18,10 +18,13 @@
 
 package com.jd;
 
+import com.jd.kafka.CustomProcessingTimeTrigger;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 
@@ -41,6 +44,7 @@ public class StreamingJob {
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 		// get input data
 		DataStream<Tuple2<String, Integer>> res_keyBy =
 				env.socketTextStream("localhost",9999)
@@ -49,7 +53,8 @@ public class StreamingJob {
 				//keyBy进行分区，按照第一列，也就是按照单词进行分区
 				.keyBy(0)
 				//指定窗口，每10秒个计算一次
-				.timeWindow(Time.seconds(10))
+				.window(TumblingProcessingTimeWindows.of(Time.minutes(2)))
+				.trigger(new CustomProcessingTimeTrigger())
 				//计算个数，计算第1列
 				.sum(1);
 		res_keyBy.print();
