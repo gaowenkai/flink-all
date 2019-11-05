@@ -7,8 +7,8 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 //窗口定时触发器（每10条数据触发一次）
 public class CustomProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
 
-        private static final long serialVersionUID = -4372617074659249920L;
-        private static int flag = 0;
+    private static final long serialVersionUID = -4372617074659249920L;
+    private static int flag = 0;
 
     @Override
     public TriggerResult onElement(Object o, long l, TimeWindow timeWindow, TriggerContext triggerContext) throws Exception {
