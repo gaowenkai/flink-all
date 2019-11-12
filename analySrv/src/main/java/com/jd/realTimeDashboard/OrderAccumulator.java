@@ -1,7 +1,6 @@
 package com.jd.realTimeDashboard;
 
 import lombok.*;
-
 import java.util.HashSet;
 
 @Getter

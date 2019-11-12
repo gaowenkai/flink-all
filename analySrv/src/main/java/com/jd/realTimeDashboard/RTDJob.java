@@ -66,6 +66,21 @@ public class RTDJob {
                 .name("process_site_gmv").uid("process_site_gmv");
 
         siteResStream.print();
+
+
+        // top N
+        WindowedStream<SubOrderDetail, Tuple, TimeWindow> merchandiseWinStream = orderStream
+                .keyBy("merchandiseId")
+                .window(TumblingProcessingTimeWindows.of(Time.minutes(1)));
+        DataStream<Tuple2<Long,Long>> merchandiseRankStream = merchandiseWinStream
+                .aggregate(new MerchandiseAggFunc(), new MerchandiseWinFunc())
+                .windowAll(TumblingProcessingTimeWindows.of(Time.minutes(1)))
+                .process(new OutputRankProcessFunc(1))
+                .name("merchandise_rank_output").uid("merchandise_rank_output");
+
+        merchandiseRankStream.print();
+
+
         env.execute("job");
 
     }
