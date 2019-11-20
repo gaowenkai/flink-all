@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class OutputRankProcessFunc extends ProcessAllWindowFunction<Tuple2<Long,Long>, Tuple2<Long,Long>, TimeWindow> {
-
+    private static final long serialVersionUID = 529606148074958108L;
     private int topsize = 10;
 
     public OutputRankProcessFunc(){}

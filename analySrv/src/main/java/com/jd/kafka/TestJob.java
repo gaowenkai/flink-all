@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class WatermarksTest {
+public class TestJob {
 
     public static void main(String[] args) throws Exception {
 

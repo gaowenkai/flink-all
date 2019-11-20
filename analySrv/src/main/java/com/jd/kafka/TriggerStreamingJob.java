@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package com.jd;
+package com.jd.kafka;
 
 import com.jd.kafka.CustomProcessingTimeTrigger;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -40,7 +40,7 @@ import org.apache.flink.util.Collector;
  * <p>If you change the name of the main class (with the public static void main(String[] args))
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
-public class StreamingJob {
+public class TriggerStreamingJob {
 	public static void main(String[] args) throws Exception {
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
