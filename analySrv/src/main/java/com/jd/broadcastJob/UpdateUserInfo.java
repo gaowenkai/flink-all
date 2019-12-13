@@ -25,9 +25,11 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 
-
-// {"userID": "user_3", "eventTime": "2019-08-17 12:19:47", "eventType": "browse", "productID": 1}
-// {"userID": "user_2", "eventTime": "2019-08-17 12:19:48", "eventType": "click", "productID": 1}
+/**
+ * {"userID": "user_3", "eventTime": "2019-08-17 12:19:47", "eventType": "browse", "productID": 1}
+ *
+ * {"userID": "user_2", "eventTime": "2019-08-17 12:19:48", "eventType": "click", "productID": 1}
+ */
 
 @Slf4j
 public class UpdateUserInfo {

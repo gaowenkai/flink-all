@@ -17,6 +17,15 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.ContinuousProcessingTimeTrigger;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 
+
+/**
+ * {"userId": 234567,"orderId": 2902306918400,"subOrderId": 2902306918401,"siteId": 10219,"siteName": "site_blabla","cityId": 101,"cityName": "北京市","warehouseId": 636,"merchandiseId": 187699,"price": 100,"quantity": 2,"orderStatus": 1,"isNewOrder": 0,"timestamp": 1572963672217}
+ *
+ * {"userId": 234567,"orderId": 2902306918400,"subOrderId": 2902306918400,"siteId": 10219,"siteName": "site_blabla","cityId": 101,"cityName": "北京市","warehouseId": 636,"merchandiseId": 187699,"price": 100,"quantity": 1,"orderStatus": 1,"isNewOrder": 0,"timestamp": 1572963672217}
+ *
+ * {"userId": 234567,"orderId": 2902306918401,"subOrderId": 2902306918400,"siteId": 10219,"siteName": "site_blabla","cityId": 101,"cityName": "北京市","warehouseId": 636,"merchandiseId": 187690,"price": 100,"quantity": 4,"orderStatus": 1,"isNewOrder": 0,"timestamp": 1572963672217}
+ */
+
 public class RTDJob {
 
     public static void main(String[] args) throws Exception {
