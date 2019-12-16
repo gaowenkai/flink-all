@@ -10,6 +10,7 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.datastream.WindowedStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
@@ -78,17 +79,17 @@ public class RTDJob {
 
 
         // top N
-        WindowedStream<SubOrderDetail, Tuple, TimeWindow> merchandiseWinStream = orderStream
+        SingleOutputStreamOperator<Tuple2<Long, Long>> merchandiseAggStream = orderStream
                 .keyBy("merchandiseId")
-                .window(TumblingProcessingTimeWindows.of(Time.minutes(1)));
-        DataStream<Tuple2<Long,Long>> merchandiseRankStream = merchandiseWinStream
-                .aggregate(new MerchandiseAggFunc(), new MerchandiseWinFunc())
-                .windowAll(TumblingProcessingTimeWindows.of(Time.minutes(1)))
-                .process(new OutputRankProcessFunc(1))
+                .window(TumblingProcessingTimeWindows.of(Time.days(1),Time.hours(16)))//处理时间的时区问题
+                .trigger(ContinuousProcessingTimeTrigger.of(Time.seconds(10)))//1s为周期触发计算
+                .aggregate(new MerchandiseAggFunc(),new MerchandiseWinFunc());
+        SingleOutputStreamOperator<Tuple2<Long, Long>> resStream = merchandiseAggStream
+                .windowAll(TumblingProcessingTimeWindows.of(Time.seconds(10)))
+                .process(new OutputRankProcessFunc(2))
                 .name("merchandise_rank_output").uid("merchandise_rank_output");
 
-        merchandiseRankStream.print();
-
+        resStream.print();
 
         env.execute("job");
 
