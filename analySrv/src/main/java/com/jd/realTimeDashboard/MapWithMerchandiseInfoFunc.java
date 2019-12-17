@@ -2,6 +2,7 @@ package com.jd.realTimeDashboard;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.configuration.Configuration;
 
@@ -12,9 +13,10 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
-
-
+@Slf4j
 public class MapWithMerchandiseInfoFunc extends RichMapFunction<String, String> {
     private static final long serialVersionUID = 49050897922571493L;
 
@@ -26,20 +28,27 @@ public class MapWithMerchandiseInfoFunc extends RichMapFunction<String, String> 
     @Override
     public void open(Configuration parameters) throws Exception{
         super.open(parameters);
-        Class.forName("com.mysql.jdbc.Driver");
-        connection = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/mydb?useUnicode=true&characterEncoding=UTF-8", "root", "gwk");
-        String sql = "select merchandiseId,merchandiseName,merchandiseType from merchandise_info";
-        preparedStatement = connection.prepareStatement(sql);
-
         merchandiseInfo = new HashMap<>();
-        ResultSet resultSet = preparedStatement.executeQuery();
-        while (resultSet.next()){
-            long merchandiseId = resultSet.getLong("merchandiseId");
-            String merchandiseName = resultSet.getString("merchandiseName");
-            String merchandiseType = resultSet.getString("merchandiseType");
-            merchandiseInfo.put(merchandiseId,new MerchandiseInfo(merchandiseId,merchandiseName,merchandiseType));
-        }
 
+        dbScheduler = new ScheduledThreadPoolExecutor(1);
+        dbScheduler.scheduleWithFixedDelay(()->{
+            try{
+                Class.forName("com.mysql.jdbc.Driver");
+                connection = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/mydb?useUnicode=true&characterEncoding=UTF-8", "root", "gwk");
+                String sql = "select merchandiseId,merchandiseName,merchandiseType from merchandise_info";
+                preparedStatement = connection.prepareStatement(sql);
+                ResultSet resultSet = preparedStatement.executeQuery();
+                while (resultSet.next()){
+                    long merchandiseId = resultSet.getLong("merchandiseId");
+                    String merchandiseName = resultSet.getString("merchandiseName");
+                    String merchandiseType = resultSet.getString("merchandiseType");
+                    merchandiseInfo.put(merchandiseId,new MerchandiseInfo(merchandiseId,merchandiseName,merchandiseType));
+                    }
+                }catch (Exception e){
+                    log.error("Exception occurred when querying: " + e);
+                }
+
+        },0,60, TimeUnit.SECONDS);
 
     }
 
