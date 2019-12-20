@@ -5,7 +5,7 @@ package com.jd.study.leetcode;
  * https://blog.csdn.net/RAYFUXK/article/details/103373874
  */
 
-public class reverseKGroup {
+public class Soulation25 {
     public ListNode reverseKGroup(ListNode head, int k) {
 
         if (head == null || head.next == null) {
