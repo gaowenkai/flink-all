@@ -45,7 +45,5 @@ public class Soulation739 {
         for (int i = 0; i < res.length; i++) {
             System.out.print(res[i] + ",");
         }
-
-
     }
 }
