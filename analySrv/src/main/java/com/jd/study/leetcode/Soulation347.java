@@ -2,6 +2,10 @@ package com.jd.study.leetcode;
 
 import java.util.*;
 
+
+/**
+ * 347. 前 K 个高频元素
+ */
 public class Soulation347 {
     public List<Integer> topKFrequent(int[] nums, int k) {
         HashMap<Integer, Integer> map = new HashMap<>();
