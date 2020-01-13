@@ -19,7 +19,7 @@ public class Soulation147 {
                 cur.next = next.next;
                 next.next = t;
 
-                pre = dummy;
+                pre = dummy;//复位
             }else{
                 cur =next;
             }
