@@ -80,7 +80,7 @@ public class Soulation1036 {
         if(maze[target[0]][target[1]]<Integer.MAX_VALUE){
             System.out.println(maze[target[0]][target[1]]);
         }else{
-            System.out.println("fasle");
+            System.out.println("no way");
         }
 
 
@@ -102,7 +102,7 @@ public class Soulation1036 {
     }
 
     public static void main(String[] args) {
-        int[][] blocked = new int[][]{{0,1},{3,0},{1,1}}; //{{0,1},{3,0},{1,1}}
+        int[][] blocked = new int[][]{{0,1},{3,0},{1,1}}; //{{0,1},{2,0},{1,1}}
         int[] source = new int[]{0,0};
         int[] target = new int[]{0,2};
         boolean res = new Soulation1036().isEscapePossible(blocked,source,target);
